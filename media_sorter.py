@@ -36,6 +36,7 @@ import shutil
 import time
 
 from optparse import OptionParser
+from sets import Set
 
 def is_video_file(fpath):
     FPATH = fpath.upper()
@@ -120,9 +121,11 @@ if __name__ == "__main__":
     with open(os.path.join(options.input, gen_log_name(options.type)), 'a') as log_file:
 
         f_list = walk_dir(options.input, options.type)
+        reindex_paths = Set()
 
         for f in f_list:
             dst = os.path.join(options.output, gen_dst_dir_path(f))
+            reindex_paths.add(dst)
             try:
                 if not (os.path.exists(dst) and os.path.isdir(dst)):
                     if options.dryrun != True:
@@ -134,9 +137,12 @@ if __name__ == "__main__":
                     continue
                 subprocess.call( [ 'synoindex', '-d', f ] )
                 shutil.move(f, dst_file)
-                subprocess.call( [ 'synoindex', '-a', dst_file ] )
             except Exception, e:
                 print >> log_file, "error: ", str(e)
+
+        for p in reindex_paths:
+            subprocess.call( [ 'synoindex', '-R', p ] )
+
         print >> log_file, "done"
 
     exit(0)
