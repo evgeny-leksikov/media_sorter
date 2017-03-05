@@ -88,15 +88,18 @@ def gen_dst_dir_path(f):
 def gen_dst_file_path(src, dst):
     fname = os.path.basename(src)
     dst_full_path = os.path.join(dst, fname)
-	
+
     i = 0
     while os.path.exists(dst_full_path):
         dst_full_path = os.path.join(dst, str() + \
         ("00" if i < 100 else "0" if i < 10 else "") + str(i) + fname)
+        i += 1
+        if i == 100:
+            raise Exception(str('gen_dst_file_path: src=%s, dst=%s') % src, dst)
     return dst_full_path
 
-def gen_log_name():
-    return "photo_sorting_d" + \
+def gen_log_name(f_type):
+    return str(f_type) + "_sorting_d" + \
         datetime.datetime.now().isoformat().lower().replace(':', '-').replace('.', '-') + \
         ".log"
 
@@ -106,6 +109,7 @@ if __name__ == "__main__":
         "log file in format \"media_sorting_d<date>t<time>.log\" will be created here")
     parser.add_option("-o", "--output", help = "output directory to put sorted media library")
     parser.add_option("-t", "--type", help = "type of files: \"photo\", \"video\" or \"all\"")
+    parser.add_option("-d", "--dryrun", action="store_true", help = "print files into logfile and exit")
     (options, args) = parser.parse_args()
 
     if not (os.path.isdir(options.input) and os.path.isdir(options.output)):
@@ -113,7 +117,7 @@ if __name__ == "__main__":
         parser.print_help()
         exit(1)
 
-    with open(os.path.join(options.input, gen_log_name()), 'a') as log_file:
+    with open(os.path.join(options.input, gen_log_name(options.type)), 'a') as log_file:
 
         f_list = walk_dir(options.input, options.type)
 
@@ -121,11 +125,14 @@ if __name__ == "__main__":
             dst = os.path.join(options.output, gen_dst_dir_path(f))
             try:
                 if not (os.path.exists(dst) and os.path.isdir(dst)):
-                    os.makedirs(dst)
+                    if options.dryrun != True:
+                        os.makedirs(dst)
                 dst_file = gen_dst_file_path(f, dst)
 
-                subprocess.call( [ 'synoindex', '-d', f ] )
                 print >> log_file, "moving ", f, " to ", dst_file
+                if options.dryrun == True:
+                    continue
+                subprocess.call( [ 'synoindex', '-d', f ] )
                 shutil.move(f, dst_file)
                 subprocess.call( [ 'synoindex', '-a', dst_file ] )
             except Exception, e:
