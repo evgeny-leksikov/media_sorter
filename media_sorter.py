@@ -41,7 +41,8 @@ def is_video_file(fpath):
     FPATH = fpath.upper()
     return FPATH.endswith("MTS") or \
         FPATH.endswith("MP4") or \
-        FPATH.endswith("MOV")
+        FPATH.endswith("MOV") or \
+        FPATH.endswith("AVI")
 
 def is_photo_file(fpath):
     FPATH = fpath.upper()
@@ -70,7 +71,8 @@ def walk_dir(dir_path, f_type):
     
     foo_d_list = [ d for d in foo_all_list if os.path.isdir(d) ]
     for d in foo_d_list:
-        ret_list.extend(walk_dir(d, f_type))
+        if "@EADIR" not in d.upper():
+            ret_list.extend(walk_dir(d, f_type))
 
     return ret_list
 
